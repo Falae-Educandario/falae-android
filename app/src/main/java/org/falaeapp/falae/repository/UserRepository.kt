@@ -66,22 +66,12 @@ class UserRepository(val context: Context) {
     }
 
     suspend fun handleNewVersion(currentVersionCode: Int) = withContext(Dispatchers.IO) {
-        val doesntExist = -1
-        // Get saved version code
-        val storedVersionCode = sharedPreferences.getInt(VERSION_CODE, doesntExist)
-        // Check for first run or upgrade
-        when {
-            currentVersionCode == storedVersionCode -> // This is just a normal run
-                return@withContext
-            storedVersionCode == doesntExist -> {
-                // TODO This is a new install (or the user cleared the shared preferences)
-            }
-            currentVersionCode > storedVersionCode -> {
-                sharedPreferences.clear()
-            }
+        val storedVersionCode = sharedPreferences.getInt(VERSION_CODE, -1)
+        if (currentVersionCode != storedVersionCode) {
+            // An SDK/app upgrade does not require resetting accessibility settings
+            // or the last selected user. Migrate individual keys only when necessary.
+            sharedPreferences.storeInt(VERSION_CODE, currentVersionCode)
         }
-        // Update the shared preferences with the current version code
-        sharedPreferences.storeInt(VERSION_CODE, currentVersionCode)
     }
 
     suspend fun syncAccount(email: String, password: String): User = withContext(Dispatchers.IO) {

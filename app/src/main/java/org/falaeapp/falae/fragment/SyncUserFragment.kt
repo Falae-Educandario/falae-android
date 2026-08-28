@@ -33,7 +33,7 @@ class SyncUserFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        userViewModel = ViewModelProvider(activity!!).get(UserViewModel::class.java)
+        userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
         userViewModel.syncAccountResponse.observe(this, Observer { event ->
             event?.getContentIfNotHandled()?.let { result ->
                 result.second?.let { error ->
@@ -51,7 +51,7 @@ class SyncUserFragment : Fragment() {
         mEmailView = view.findViewById(R.id.email) as EditText
         mPasswordView = view.findViewById(R.id.password) as EditText
         mPasswordView.setOnEditorActionListener(TextView.OnEditorActionListener { _, id, _ ->
-            if (id == R.id.login || id == EditorInfo.IME_ACTION_DONE) {
+            if (id == EditorInfo.IME_ACTION_DONE) {
                 val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.hideSoftInputFromWindow(mPasswordView.windowToken, 0)
                 attemptLogin()
@@ -91,9 +91,14 @@ class SyncUserFragment : Fragment() {
     }
 
     private fun showSoftwareKeyboard(showKeyboard: Boolean) {
-        val inputManager = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputManager.hideSoftInputFromWindow(activity?.currentFocus?.windowToken,
-                if (showKeyboard) InputMethodManager.SHOW_FORCED else InputMethodManager.HIDE_NOT_ALWAYS)
+        val currentActivity = activity ?: return
+        val focusedView = currentActivity.currentFocus ?: return
+        val inputManager = currentActivity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        if (showKeyboard) {
+            inputManager.showSoftInput(focusedView, InputMethodManager.SHOW_IMPLICIT)
+        } else {
+            inputManager.hideSoftInputFromWindow(focusedView.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+        }
     }
 
     private fun attemptLogin() {

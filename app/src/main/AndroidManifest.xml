@@ -22,6 +22,8 @@
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme"
+        android:localeConfig="@xml/locales_config"
+        android:usesCleartextTraffic="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules">
         <!-- Keep the existing landscape communication boards on Android 16 tablets.

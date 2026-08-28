@@ -1,7 +1,6 @@
 package org.falaeapp.falae.fragment
 
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,10 +26,11 @@ class PageFragment : Fragment(), ViewPagerItemFragment.PageInteractionListener {
     private lateinit var leftNavHolder: FrameLayout
     private lateinit var rightNavHolder: FrameLayout
     private lateinit var displayViewModel: DisplayViewModel
+    private var layoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        displayViewModel = ViewModelProvider(activity!!).get(DisplayViewModel::class.java)
+        displayViewModel = ViewModelProvider(requireActivity()).get(DisplayViewModel::class.java)
     }
 
     override fun onCreateView(
@@ -43,14 +43,12 @@ class PageFragment : Fragment(), ViewPagerItemFragment.PageInteractionListener {
         leftNavHolder = view.findViewById(R.id.left_nav_holder) as FrameLayout
         rightNavHolder = view.findViewById(R.id.right_nav_holder) as FrameLayout
 
-        val vto = view.viewTreeObserver
-        vto.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
-                    view.viewTreeObserver.removeGlobalOnLayoutListener(this)
-                } else {
-                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                }
+                view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                layoutListener = null
+                // A restored Activity can replace this fragment before its first layout.
+                if (this@PageFragment.view !== view) return
                 mPager = view.findViewById(R.id.pager) as ViewPager
                 val navHoldersSize = java.lang.Double.valueOf(mPager.measuredWidth * 0.065).toInt()
                 leftNav.layoutParams.width = navHoldersSize
@@ -59,14 +57,11 @@ class PageFragment : Fragment(), ViewPagerItemFragment.PageInteractionListener {
                 rightNav.layoutParams.height = navHoldersSize
                 leftNavHolder.layoutParams.width = navHoldersSize
                 rightNavHolder.layoutParams.width = navHoldersSize
-                if (isPagerAdapterInitialized().not()) {
-                    displayViewModel.currentPage.observe(this@PageFragment, Observer { page ->
-                        mPagerAdapter = ItemPagerAdapter(childFragmentManager, page, navHoldersSize * 2)
-                    })
-                }
-                if (::mPager.isInitialized && isPagerAdapterInitialized()) {
+                displayViewModel.currentPage.observe(viewLifecycleOwner, Observer { page ->
+                    mPagerAdapter = ItemPagerAdapter(childFragmentManager, page, navHoldersSize * 2)
                     mPager.adapter = mPagerAdapter
-                }
+                    handleNavButtons()
+                })
                 val pagerLayoutParams = mPager.layoutParams as ViewGroup.MarginLayoutParams
                 pagerLayoutParams.leftMargin += navHoldersSize
                 pagerLayoutParams.rightMargin += navHoldersSize
@@ -99,7 +94,9 @@ class PageFragment : Fragment(), ViewPagerItemFragment.PageInteractionListener {
                     mPager.currentItem = tab
                 }
             }
-        })
+        }
+        layoutListener = listener
+        view.viewTreeObserver.addOnGlobalLayoutListener(listener)
 
         return view
     }
@@ -150,9 +147,16 @@ class PageFragment : Fragment(), ViewPagerItemFragment.PageInteractionListener {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        displayViewModel.currentPage.removeObservers(this@PageFragment)
+    override fun onDestroyView() {
+        layoutListener?.let { listener ->
+            view?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnGlobalLayoutListener(listener)
+        }
+        layoutListener = null
+        if (::mPager.isInitialized) {
+            mPager.clearOnPageChangeListeners()
+            mPager.adapter = null
+        }
+        super.onDestroyView()
     }
 
     fun speak(msg: String) {

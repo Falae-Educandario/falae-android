@@ -18,13 +18,7 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-task clean(type: Delete) {
+// Dependency repositories are defined centrally in settings.gradle.
+tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

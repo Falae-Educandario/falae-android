@@ -30,8 +30,8 @@ class SettingsFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        settingsViewModel = ViewModelProvider(activity!!).get(SettingsViewModel::class.java)
-        userViewModel = ViewModelProvider(activity!!).get(UserViewModel::class.java)
+        settingsViewModel = ViewModelProvider(requireActivity()).get(SettingsViewModel::class.java)
+        userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -145,7 +145,7 @@ class SettingsFragment : Fragment() {
 
     private fun onClickCache(confirmMsg: String, onClick: () -> Unit) {
         val dialog = Util.createDialog(
-            context = context!!,
+            context = requireContext(),
             message = confirmMsg,
             positiveText = getString(R.string.yes_option),
             positiveClick = onClick,

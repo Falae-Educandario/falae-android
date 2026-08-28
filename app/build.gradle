@@ -42,8 +42,8 @@ android {
         applicationId "org.falaeapp.falae"
         minSdkVersion 21
         targetSdkVersion 36
-        versionCode 22
-        versionName "1.0.22"
+        versionCode 31
+        versionName "1.0.31"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -108,7 +108,4 @@ dependencies {
     testImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test:runner:1.5.2'
-}
-repositories {
-    mavenCentral()
 }

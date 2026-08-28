@@ -58,8 +58,8 @@ class ViewPagerItemFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        displayViewModel = ViewModelProvider(activity!!).get(DisplayViewModel::class.java)
-        settingsViewModel = ViewModelProvider(activity!!).get(SettingsViewModel::class.java)
+        displayViewModel = ViewModelProvider(requireActivity()).get(DisplayViewModel::class.java)
+        settingsViewModel = ViewModelProvider(requireActivity()).get(SettingsViewModel::class.java)
         arguments?.let { arguments ->
             mItems = arguments.getParcelableArrayList(ITEMS_PARAM) ?: emptyList()
             mColumns = arguments.getInt(COLUMNS_PARAM)
@@ -140,6 +140,8 @@ class ViewPagerItemFragment : Fragment() {
         }
         name.text = item.name
         name.post {
+            // Recreating the Activity can detach the item before this callback runs.
+            if (!isAdded || view == null || !name.isAttachedToWindow) return@post
             val imageSize = calculateImageSize(layoutDimensions.x, layoutDimensions.y, name, imageView)
             if (item.category == Category.SUBJECT || item.category == Category.OTHER) {
                 name.setTextColor(Color.BLACK)
