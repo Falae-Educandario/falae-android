@@ -1,0 +1,23 @@
+// QA only: exercise the real minified release with a debug key.
+// Outputs are isolated; never upload these test artifacts to Google Play.
+// Usage: gradlew -I docs/release-tests.init.gradle :app:connectedReleaseAndroidTest
+def qaOutput = gradle.startParameter.projectProperties['falaeQaBuildDir']
+
+gradle.beforeProject { project ->
+    def qaRoot = qaOutput ? new File(qaOutput) : new File(project.rootDir, 'build/release-qa')
+    project.layout.buildDirectory.set(new File(qaRoot, project.name))
+    project.pluginManager.withPlugin('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { android ->
+            android.testBuildType = 'release'
+            android.buildTypes.getByName('release').signingConfig = android.signingConfigs.getByName('debug')
+            android.buildTypes.getByName('release').proguardFile(new File(project.rootDir, 'docs/release-tests.pro'))
+        }
+    }
+}
+
+// Prevent accidentally generating a publishable-looking, debug-signed bundle.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.name in ['bundleRelease', 'packageReleaseBundle', 'signReleaseBundle'] }) {
+        throw new GradleException('Remove the release-tests init script to generate a production bundle.')
+    }
+}

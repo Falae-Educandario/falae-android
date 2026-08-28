@@ -6,7 +6,7 @@ Android 16 testada no Android Studio. O merge preserva os dois historicos.
 ## Configuracao
 
 - `compileSdk` e `targetSdk`: 36; `minSdk`: 21.
-- Versao do app: 1.0.31, `versionCode` 31 (o `main` usava 30).
+- Versao do app: 1.0.36, `versionCode` 36 (o `main` usava 30; a Play recebeu 35).
 - AGP 8.9.2, Gradle 8.11.1, bytecode Java/Kotlin 17 e Kotlin 1.9.25.
 - Mantida a combinacao de dependencias usada na versao local testada.
 - Repositorios de dependencias centralizados em `settings.gradle`, como no `main`.
@@ -45,11 +45,15 @@ https://support.google.com/googleplay/android-developer/answer/11926878
 
 ## Verificacao
 
-Validado em 28/08/2026: APK debug, um teste unitario, cinco testes instrumentados
+Na integracao inicial em 28/08/2026: APK debug, um teste unitario, cinco testes instrumentados
 no emulador API 36, otimizacao R8 de release e lint de debug/release passaram.
 O lint completo terminou com zero erros e 106 avisos; os avisos legados nao
 foram silenciados. O emulador foi executado em modo somente leitura e encerrado
 apos os testes.
+
+Essa verificacao inicial compilou/otimizou release, mas executou os testes em
+debug. A falha de reflexao do Gson encontrada depois pela Play exige testar
+tambem a execucao do APK minificado; compilar release sozinho nao detecta isso.
 
 Executar com JDK 17 ou compativel com Gradle 8.11.1, SDK 36 instalado e
 um dispositivo/emulador de teste conectado:
@@ -71,5 +75,53 @@ audio/varredura e comportamento em um tablet real e em um Android antigo.
 
 Gerar um Android App Bundle de release assinado com a chave de upload ja
 cadastrada na Play Console. As credenciais e a chave nao fazem parte desta PR.
-Se a Console ja tiver um `versionCode` maior ou igual a 31, incrementar o valor
+Se a Console ja tiver um `versionCode` maior ou igual a 36, incrementar o valor
 antes de gerar o bundle. A assinatura de release nao e validada por estes testes.
+
+## Correcao do crash reportado no teste de 16 KB (versao 35)
+
+O stack trace da Play aponta `ExceptionInInitializerError` em
+`SpreadSheetConverter`, causado por `TypeToken must be created with a type argument`.
+O mesmo crash foi reproduzido na inicializacao do APK release em Android 16
+com paginas de 4096 bytes. O bundle 35 inspecionado nao contem bibliotecas `.so`.
+Portanto, esse stack trace e uma falha de reflexao/R8, nao de alinhamento de ELF.
+
+As regras de producao agora preservam `Signature`, `TypeToken` e suas subclasses,
+conforme a [orientacao do Gson](https://google.github.io/gson/Troubleshooting.html#illegalstateexception-typetoken-must-be-created-with-a-type-argument).
+Minificacao e otimizacao de recursos continuam ativas. Nao houve mudanca no
+esquema Room, nos conversores, nos JSONs de exemplo nem nas funcionalidades.
+
+`ReleasePersistenceTest` cobre JSON existente de pranchas (incluindo objetos
+aninhados), o mapa do cache e a gravacao/leitura das duas entidades pelo Room
+em um banco exclusivamente em memoria.
+
+Depois da correcao, oito testes instrumentados passaram no release de QA em
+Android 16 / x86_64 / 4 KB, sem falhas. O teste unitario existente e o lint vital
+de release tambem passaram. As credenciais de assinatura de producao nao foram
+usadas e o AAB assinado 35 anterior foi mantido intacto.
+
+Tambem foi gerado um APK 36 com as regras normais de producao (sem as regras
+extras do executor de testes), mudando apenas a assinatura para a chave de QA
+e o diretorio de saida. No emulador descartavel, a primeira inicializacao criou
+e exibiu a prancha de exemplo; a prancha abriu com seus itens; apos encerrar o
+processo e reabrir o app, os dados persistidos continuaram disponiveis.
+Nao houve novo crash do app nessas verificacoes. Esse APK nao contem `.so`.
+
+Para executar os testes no APK otimizado, use um emulador descartavel, sem
+contas pessoais, e configure `ANDROID_SERIAL` para o dispositivo de teste:
+
+```text
+gradlew.bat -I docs/release-tests.init.gradle :app:connectedReleaseAndroidTest
+```
+
+O init script mantem a otimizacao de release, usa a chave de debug apenas no QA
+e separa as saidas em `build/release-qa`. Regras adicionais preservam as bibliotecas
+compartilhadas AndroidX/Kotlin usadas pelo APK de testes; nao preservam Gson nem
+os conversores. Esse APK de QA nao e identico ao de producao: tambem e necessario
+verificar a inicializacao de um APK com as regras normais de release.
+O script bloqueia a geracao de bundles para evitar upload acidental
+de uma assinatura de teste. Para publicar, nao use esse init script: gere um
+novo AAB 1.0.36 assinado pelo fluxo habitual do Android Studio.
+
+Um teste em 4 KB nao substitui a revalidacao em um dispositivo de 16 KB.
+O novo bundle ainda precisa passar pelos testes da Play Console.

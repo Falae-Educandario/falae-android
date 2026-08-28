@@ -27,6 +27,14 @@
 # OkHttp 3.10 probes this optional desktop TLS provider; Android uses AndroidPlatform.
 -dontwarn org.conscrypt.Conscrypt
 -dontwarn org.conscrypt.OpenSSLProvider
+
+# Gson 2.10.1: Room converters use anonymous TypeToken subclasses. In R8 full
+# mode, Signature alone is not enough: keep TypeToken and its subclasses too.
+# https://google.github.io/gson/Troubleshooting.html#illegalstateexception-typetoken-must-be-created-with-a-type-argument
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
 -keep public class org.falaeapp.falae.**{
     *;
 }
