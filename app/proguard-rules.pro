@@ -24,6 +24,9 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontwarn com.squareup.okhttp.**
+# OkHttp 3.10 probes this optional desktop TLS provider; Android uses AndroidPlatform.
+-dontwarn org.conscrypt.Conscrypt
+-dontwarn org.conscrypt.OpenSSLProvider
 -keep public class org.falaeapp.falae.**{
     *;
 }

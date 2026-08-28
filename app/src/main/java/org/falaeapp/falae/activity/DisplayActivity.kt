@@ -25,6 +25,7 @@ class DisplayActivity : AppCompatActivity(), PageFragment.PageFragmentListener,
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_display)
+        protectContentFromSystemInsets()
 
         val spreadSheet: SpreadSheet? = intent.getParcelableExtra(SPREADSHEET)
         displayViewModel = ViewModelProvider(this).get(DisplayViewModel::class.java)

@@ -32,7 +32,7 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startForegroundService() {
-        val chan = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Foreground Service", NotificationManager.IMPORTANCE_NONE)
+        val chan = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Foreground Service", NotificationManager.IMPORTANCE_LOW)
         chan.lightColor = Color.BLUE
         chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -42,7 +42,7 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
         val notification = notificationBuilder.setOngoing(true)
                 .setSmallIcon(android.R.drawable.arrow_up_float)
                 .setContentTitle(getString(org.falaeapp.falae.R.string.background_run))
-                .setPriority(NotificationManager.IMPORTANCE_MIN)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
         startForeground(2, notification)
@@ -59,11 +59,7 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
     }
 
     private fun speak(msg: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mTextToSpeech.speak(msg, TextToSpeech.QUEUE_FLUSH, null, null)
-        } else {
-            mTextToSpeech.speak(msg, TextToSpeech.QUEUE_FLUSH, null)
-        }
+        mTextToSpeech.speak(msg, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     override fun onDestroy() {
