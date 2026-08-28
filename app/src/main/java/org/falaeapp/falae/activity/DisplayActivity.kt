@@ -30,11 +30,15 @@ class DisplayActivity : AppCompatActivity(), PageFragment.PageFragmentListener,
         val spreadSheet: SpreadSheet? = intent.getParcelableExtra(SPREADSHEET)
         displayViewModel = ViewModelProvider(this).get(DisplayViewModel::class.java)
         spreadSheet?.let {
-            displayViewModel.init(it)
+            // Restored fragments/back stack already describe the page to show.
+            val hasRestoredPage = savedInstanceState != null &&
+                supportFragmentManager.findFragmentById(R.id.page_container) != null
+            displayViewModel.init(it, openInitialPage = !hasRestoredPage)
         }
 
         displayViewModel.pageToOpen.observe(this, Observer {
-            it?.let { page ->
+            it?.let { navigation ->
+                val page = navigation.consume() ?: return@Observer
                 changeFragment(page, page.initialPage.not())
             } ?: run {
                 Toast.makeText(this, getString(R.string.page_not_found), Toast.LENGTH_SHORT).show()
@@ -44,7 +48,7 @@ class DisplayActivity : AppCompatActivity(), PageFragment.PageFragmentListener,
     }
 
     private fun changeFragment(page: Page, addToBackStack: Boolean = false) {
-        val fragment = PageFragment.newInstance()
+        val fragment = PageFragment.newInstance(page)
         val fragmentManager = supportFragmentManager
         val fragmentTransaction = fragmentManager
             .beginTransaction()

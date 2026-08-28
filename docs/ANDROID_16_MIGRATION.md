@@ -6,7 +6,7 @@ Android 16 testada no Android Studio. O merge preserva os dois historicos.
 ## Configuracao
 
 - `compileSdk` e `targetSdk`: 36; `minSdk`: 21.
-- Versao do app: 1.0.36, `versionCode` 36 (o `main` usava 30; a Play recebeu 35).
+- Versao do app: 1.0.37, `versionCode` 37 (o `main` usava 30; a Play recebeu 35 e 36).
 - AGP 8.9.2, Gradle 8.11.1, bytecode Java/Kotlin 17 e Kotlin 1.9.25.
 - Mantida a combinacao de dependencias usada na versao local testada.
 - Repositorios de dependencias centralizados em `settings.gradle`, como no `main`.
@@ -75,7 +75,7 @@ audio/varredura e comportamento em um tablet real e em um Android antigo.
 
 Gerar um Android App Bundle de release assinado com a chave de upload ja
 cadastrada na Play Console. As credenciais e a chave nao fazem parte desta PR.
-Se a Console ja tiver um `versionCode` maior ou igual a 36, incrementar o valor
+Se a Console ja tiver um `versionCode` maior ou igual a 37, incrementar o valor
 antes de gerar o bundle. A assinatura de release nao e validada por estes testes.
 
 ## Correcao do crash reportado no teste de 16 KB (versao 35)
@@ -121,7 +121,52 @@ os conversores. Esse APK de QA nao e identico ao de producao: tambem e necessari
 verificar a inicializacao de um APK com as regras normais de release.
 O script bloqueia a geracao de bundles para evitar upload acidental
 de uma assinatura de teste. Para publicar, nao use esse init script: gere um
-novo AAB 1.0.36 assinado pelo fluxo habitual do Android Studio.
+novo AAB da versao atual assinado pelo fluxo habitual do Android Studio.
 
 Um teste em 4 KB nao substitui a revalidacao em um dispositivo de 16 KB.
 O novo bundle ainda precisa passar pelos testes da Play Console.
+
+## Correcao de retorno e restauracao das pranchas (versao 37)
+
+O segundo relatorio da Play, referente a 1.0.36, apresenta outra excecao:
+`Fragment no longer exists for key f0` em `FragmentStatePagerAdapter.restoreState`.
+O teste de seguir uma pagina vinculada e voltar reproduziu a mesma excecao no
+APK minificado 36 preservado, em Android 16 / x86_64 / paginas de 4 KB.
+
+Ao colocar a pagina no back stack, o ViewPager salvava referencias aos seus
+fragmentos filhos. A limpeza `adapter = null` em `onDestroyView` removia esses
+filhos, invalidando as referencias usadas na volta. A tela tambem observava a
+pagina global da Activity e podia reconstruir a pagina anterior com os dados
+da pagina seguinte.
+
+A correcao mantem o ViewPager e a restauracao de estado habilitada:
+
+- Cada `PageFragment` recebe sua propria `Page` nos argumentos persistidos.
+- O adapter e instalado uma vez por view, sem observar a pagina de outra tela.
+- Na destruicao da view, removem-se listeners e referencias locais; o
+  `FragmentManager` continua responsavel pelo ciclo de vida dos filhos.
+- Ao recriar a Activity, respeitam-se os fragmentos e o historico restaurados.
+  Uma navegacao ja consumida nao e repetida pelo ultimo valor do LiveData.
+- `PageNavigationTest` cobre tres ciclos de ida/volta e tres recriacoes na
+  pagina secundaria, verificando conteudo, historico e posicao dos dois pagers.
+- Dois testes unitarios cobrem o consumo unico da navegacao e uma nova
+  solicitacao para a mesma pagina.
+
+O esquema Room, os JSONs de exemplo, a chave de assinatura, as regras do Gson,
+o SDK minimo e os recursos de fala nao foram alterados por essa correcao.
+Referencia: [estado dos fragments](https://developer.android.com/guide/fragments/saving-state).
+
+Na versao 37, passaram os dez testes instrumentados de release, os tres testes
+unitarios e o lint vital, em Android 16 / x86_64 / paginas de 4096 bytes.
+Um segundo APK foi compilado com as regras normais de producao, sem as regras
+extras do executor de testes, alterando apenas a assinatura para QA e a saida.
+Nesse APK, a inicializacao com dados limpos e a abertura da prancha de exemplo
+passaram, assim como tres ciclos de abrir `Eat` e voltar pelo Android, o link
+`Begin` para a pagina inicial e a retomada da pagina secundaria pelos recentes
+seguida de retorno. O buffer de crashes permaneceu vazio. O APK nao contem
+bibliotecas `.so`; a assinatura de producao e a qualidade do audio nao foram
+validadas por esse teste.
+
+Para publicar, gerar novamente o AAB assinado 1.0.37 no Android Studio. O AAB
+assinado 36 anterior nao e substituido pelos testes locais. A validacao local
+em 4 KB continua sem substituir o novo teste de 16 KB da Play.
