@@ -17,7 +17,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.gridlayout.widget.GridLayout
 import androidx.lifecycle.Observer
@@ -62,12 +61,7 @@ class ViewPagerItemFragment : Fragment() {
         displayViewModel = ViewModelProvider(requireActivity()).get(DisplayViewModel::class.java)
         settingsViewModel = ViewModelProvider(requireActivity()).get(SettingsViewModel::class.java)
         arguments?.let { arguments ->
-            mItems = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                arguments.getParcelableArrayList(ITEMS_PARAM, Item::class.java) ?: emptyList()
-            } else {
-                @Suppress("DEPRECATION")
-                arguments.getParcelableArrayList(ITEMS_PARAM) ?: emptyList()
-            }
+            mItems = arguments.getParcelableArrayList(ITEMS_PARAM) ?: emptyList()
             mColumns = arguments.getInt(COLUMNS_PARAM)
             mRows = arguments.getInt(ROWS_PARAM)
             mMarginWidth = arguments.getInt(MARGIN_WIDTH)
@@ -146,10 +140,12 @@ class ViewPagerItemFragment : Fragment() {
         }
         name.text = item.name
         name.post {
+            // Recreating the Activity can detach the item before this callback runs.
+            if (!isAdded || view == null || !name.isAttachedToWindow) return@post
             val imageSize = calculateImageSize(layoutDimensions.x, layoutDimensions.y, name, imageView)
             if (item.category == Category.SUBJECT || item.category == Category.OTHER) {
                 name.setTextColor(Color.BLACK)
-                linkPage.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.ic_launch_black_48dp))
+                linkPage.setImageDrawable(context?.getDrawable(R.drawable.ic_launch_black_48dp))
             }
             if (item.imgSrc.isNotEmpty()) {
                 if (imageSize > 0 && context != null) {
@@ -180,21 +176,19 @@ class ViewPagerItemFragment : Fragment() {
 
     private fun calculateLayoutDimensions(): Point {
         val metrics = DisplayMetrics()
-
-        // Substituir o método depreciado getMetrics com o WindowMetrics
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val windowMetrics = requireActivity().windowManager.currentWindowMetrics
-            val bounds = windowMetrics.bounds
-            val widthDimension = ((bounds.width() - mMarginWidth) / mColumns).toFloat().roundToInt()
-            val heightDimension = (bounds.height() / mRows).toFloat().roundToInt()
-            return Point(widthDimension, heightDimension)
-        } else {
-            @Suppress("DEPRECATION")
-            requireActivity().windowManager.defaultDisplay.getMetrics(metrics)
-            val widthDimension = ((metrics.widthPixels - mMarginWidth) / mColumns).toFloat().roundToInt()
-            val heightDimension = (metrics.heightPixels / mRows).toFloat().roundToInt()
-            return Point(widthDimension, heightDimension)
+        activity?.windowManager?.defaultDisplay?.getMetrics(metrics)
+        if (Build.VERSION.SDK_INT >= 35) {
+            // Edge-to-edge reserves space for bars/cutouts in the activity's content padding.
+            // Size the board from that usable area, not from the full display.
+            val content = activity?.findViewById<View>(android.R.id.content)
+            if (content != null && content.width > 0 && content.height > 0) {
+                metrics.widthPixels = content.width - content.paddingLeft - content.paddingRight
+                metrics.heightPixels = content.height - content.paddingTop - content.paddingBottom
+            }
         }
+        val widthDimension = ((metrics.widthPixels - mMarginWidth) / mColumns).toFloat().roundToInt()
+        val heightDimension = (metrics.heightPixels / mRows).toFloat().roundToInt()
+        return Point(widthDimension, heightDimension)
     }
 
     private fun calculateImageSize(layoutWidth: Int, layoutHeight: Int, name: TextView, imageView: ImageView): Int {
@@ -223,8 +217,7 @@ class ViewPagerItemFragment : Fragment() {
 
     private fun doPageScan() {
         currentItemSelectedFromScan = -1
-        // userVisibleHint está depreciado, usar isVisible ou isResumed
-        if (isScanModeEnabled && isResumed) {
+        if (isScanModeEnabled && userVisibleHint) {
             timerTask = object : TimerTask() {
                 override fun run() {
                     try {
@@ -265,10 +258,8 @@ class ViewPagerItemFragment : Fragment() {
 
     private fun highlightCurrentItem() {
         if (context != null && currentItemSelectedFromScan < mItemsLayout.size) {
-            context?.let { ctx ->
-                mItemsLayout[currentItemSelectedFromScan].foreground =
-                    ContextCompat.getDrawable(ctx, R.drawable.highlight_scan_mode)
-            }
+            mItemsLayout[currentItemSelectedFromScan].foreground =
+                context?.getDrawable(R.drawable.highlight_scan_mode)
         }
     }
 
@@ -278,9 +269,7 @@ class ViewPagerItemFragment : Fragment() {
             previousItem = mItemsLayout.size - 1
         }
         if (context != null && previousItem < mItemsLayout.size) {
-            context?.let { ctx ->
-                mItemsLayout[previousItem].foreground = ContextCompat.getDrawable(ctx, R.drawable.normal_color)
-            }
+            mItemsLayout[previousItem].foreground = context?.getDrawable(R.drawable.normal_color)
         }
     }
 
@@ -320,15 +309,7 @@ class ViewPagerItemFragment : Fragment() {
         fun newInstance(items: ArrayList<Item>, columns: Int, rows: Int, width: Int): ViewPagerItemFragment {
             val fragment = ViewPagerItemFragment()
             val args = Bundle()
-
-            // Usar o método correto para API 33+
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                args.putParcelableArrayList(ITEMS_PARAM, items)
-            } else {
-                @Suppress("DEPRECATION")
-                args.putParcelableArrayList(ITEMS_PARAM, items)
-            }
-
+            args.putParcelableArrayList(ITEMS_PARAM, items)
             args.putInt(COLUMNS_PARAM, columns)
             args.putInt(ROWS_PARAM, rows)
             args.putInt(MARGIN_WIDTH, width)

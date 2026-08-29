@@ -3,5 +3,4 @@
     <locale android:name="pt" />
     <locale android:name="pt-BR" />
     <locale android:name="en" />
-    <locale android:name="es" />
 </locale-config>

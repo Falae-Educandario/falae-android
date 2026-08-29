@@ -14,12 +14,12 @@ class DisplayViewModel(application: Application) : AndroidViewModel(application)
     private lateinit var currentSpreadSheet: SpreadSheet
 
     private val linkToPage: MutableLiveData<String> = MutableLiveData()
-    val pageToOpen: LiveData<Page> = linkToPage.switchMap { linkTo ->
+    val pageToOpen: LiveData<PageNavigation> = linkToPage.switchMap { linkTo ->
         liveData(Dispatchers.Default) {
             val page = currentSpreadSheet.pages.find { it.name == linkTo }
             page?.apply {
                 initialPage = isInitialPage(this)
-                emit(this)
+                emit(PageNavigation(this))
             }
         }
     }
@@ -31,10 +31,10 @@ class DisplayViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun init(spreadSheet: SpreadSheet) {
+    fun init(spreadSheet: SpreadSheet, openInitialPage: Boolean = true) {
         currentSpreadSheet = spreadSheet
-        currentSpreadSheet.initialPage?.let {
-            openPage(it)
+        if (openInitialPage) {
+            currentSpreadSheet.initialPage?.let { openPage(it) }
         }
     }
 
@@ -48,7 +48,15 @@ class DisplayViewModel(application: Application) : AndroidViewModel(application)
         newPage.value = page
     }
 
-    fun getCurrentSpreadSheet(): SpreadSheet {
-        return currentSpreadSheet
+    // LiveData replays its last value when an Activity is recreated. A handled
+    // navigation must not replace the fragments/back stack Android just restored.
+    class PageNavigation(private val page: Page) {
+        private var handled = false
+
+        fun consume(): Page? {
+            if (handled) return null
+            handled = true
+            return page
+        }
     }
 }

@@ -10,3 +10,8 @@ keys/release_keystore.properties
 keys/*.jks
 *.jks
 app/release
+/.vscode/
+**/build/
+*.apk
+*.aab
+*.keystore

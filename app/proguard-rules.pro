@@ -24,44 +24,21 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontwarn com.squareup.okhttp.**
+# OkHttp 3.10 probes this optional desktop TLS provider; Android uses AndroidPlatform.
+-dontwarn org.conscrypt.Conscrypt
+-dontwarn org.conscrypt.OpenSSLProvider
+
+# Gson 2.10.1: Room converters use anonymous TypeToken subclasses. In R8 full
+# mode, Signature alone is not enough: keep TypeToken and its subclasses too.
+# https://google.github.io/gson/Troubleshooting.html#illegalstateexception-typetoken-must-be-created-with-a-type-argument
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
 -keep public class org.falaeapp.falae.**{
     *;
 }
 -keep public class com.google.android.gms.* { public *; }
-
-# Android 15 specific ProGuard rules
--keep class androidx.window.** { *; }
--keep class androidx.core.splashscreen.** { *; }
--keep class androidx.datastore.** { *; }
--keep class androidx.work.** { *; }
-
-# Kotlin Coroutines
--keepclassmembernames class kotlinx.** {
-    volatile <fields>;
-}
-
-# Material Design Components
--keep class com.google.android.material.** { *; }
--dontwarn com.google.android.material.**
-
-# AndroidX libraries
--keep class androidx.lifecycle.** { *; }
--keep class androidx.room.** { *; }
--dontwarn androidx.room.**
-
-# Retrofit and OkHttp
--keepattributes Signature, InnerClasses, EnclosingMethod
--keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
--keep,allowshrinking,allowoptimization class * extends retrofit2.DefaultCallAdapterFactory
-
-# Gson
--keepattributes Signature
--keep class sun.misc.Unsafe { *; }
--keep class com.google.gson.stream.** { *; }
-
-# Android 15 compatibility
--keep class android.window.** { *; }
--keep class android.app.UiModeManager { *; }
 -dontwarn com.google.android.gms.**
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
@@ -72,9 +49,3 @@
     public static *** v(...);
     public static *** i(...);
 }
-
-# OkHttp and Conscrypt rules
--dontwarn org.conscrypt.**
--dontwarn org.bouncycastle.**
--dontwarn org.openjsse.**
--dontwarn okhttp3.internal.platform.**

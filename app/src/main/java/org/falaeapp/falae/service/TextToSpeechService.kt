@@ -12,7 +12,6 @@ import android.os.IBinder
 import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import org.falaeapp.falae.util.TTSHelper
 import java.util.*
 
 
@@ -33,7 +32,7 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startForegroundService() {
-        val chan = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Foreground Service", NotificationManager.IMPORTANCE_NONE)
+        val chan = NotificationChannel(NOTIFICATION_CHANNEL_ID, "Foreground Service", NotificationManager.IMPORTANCE_LOW)
         chan.lightColor = Color.BLUE
         chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -43,7 +42,7 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
         val notification = notificationBuilder.setOngoing(true)
                 .setSmallIcon(android.R.drawable.arrow_up_float)
                 .setContentTitle(getString(org.falaeapp.falae.R.string.background_run))
-                .setPriority(NotificationManager.IMPORTANCE_MIN)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
         startForeground(2, notification)
@@ -71,12 +70,11 @@ class TextToSpeechService : Service(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val configured = TTSHelper.configurePortugueseBrazilianTTS(mTextToSpeech)
-            if (!configured) {
-                android.util.Log.e("TTS", "Não foi possível configurar voz portuguesa")
-            } else {
-                android.util.Log.i("TTS", "TextToSpeechService configurado com voz portuguesa")
+            var currentLocation: Locale? = Locale.getDefault()
+            if (currentLocation == null) {
+                currentLocation = Locale("pt", "BR")
             }
+            mTextToSpeech.language = currentLocation
         }
     }
 

@@ -1,24 +1,16 @@
 package org.falaeapp.falae.fragment
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.RelativeLayout
 import android.widget.SeekBar
-import androidx.appcompat.widget.SwitchCompat
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import org.falaeapp.falae.R
@@ -30,9 +22,9 @@ class SettingsFragment : Fragment() {
 
     private lateinit var seekBar: SeekBar
     private lateinit var seekBarValue: TextView
-    private lateinit var scanMode: SwitchCompat
-    private lateinit var feedbackSound: SwitchCompat
-    private lateinit var automaticNextPage: SwitchCompat
+    private lateinit var scanMode: Switch
+    private lateinit var feedbackSound: Switch
+    private lateinit var automaticNextPage: Switch
     private lateinit var settingsViewModel: SettingsViewModel
     private lateinit var userViewModel: UserViewModel
 
@@ -88,21 +80,7 @@ class SettingsFragment : Fragment() {
                 userViewModel.clearPublicCache()
             }
         }
-        
-        val btVoiceSettings = view.findViewById<Button>(R.id.bt_voice_settings)
-        btVoiceSettings.setOnClickListener {
-            openTTSLanguageSettings()
-        }
-        // setHasOptionsMenu(true) está depreciado, usar MenuProvider
-        requireActivity().addMenuProvider(object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                // Adicionar itens de menu se necessário
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                return false
-            }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        setHasOptionsMenu(true)
 
         observeScanMode()
         observeFeedbackSound()
@@ -184,16 +162,6 @@ class SettingsFragment : Fragment() {
     fun setSeekBarText(progress: Int) {
         seekBarValue.x = calculateSeekBarPosition(progress)
         seekBarValue.text = "${progress * 0.5f}"
-    }
-
-    private fun openTTSLanguageSettings() {
-        try {
-            val installTts = Intent()
-            installTts.action = TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA
-            startActivity(installTts)
-        } catch (ex: ActivityNotFoundException) {
-            Toast.makeText(requireContext(), getString(R.string.language_settings_not_available), Toast.LENGTH_LONG).show()
-        }
     }
 
     companion object {
